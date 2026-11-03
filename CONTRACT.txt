@@ -1,0 +1,82 @@
+CSV-SCHEMA-AUDIT V1 — COMPLETE PUBLIC CONTRACT DRAFT
+Status: NOT APPROVED / NOT IMPLEMENTED / NOT AN ORACLE. Intended immutable input to Root's independent oracle before Muse writes any candidate. Supersedes only the provisional CSV semantics in new-project-capacity-review-20261028; that earlier package remains unchanged. No runtime/catalog/publication authority is granted here.
+
+1. Purpose and scope
+A dependency-free Python >=3.10 library and installed CLI for checking a small local CSV against an explicit schema, with deterministic diagnostics that never echo input values or names. Version0.1.0, MIT; repository martinlofranodeoliveira/csv-schema-audit. This is schema/data-quality validation, distinct from JSONL syntax validation and offline HTTP Range parsing. No inference, conversion, repair, spreadsheet evaluation, network, server, telemetry or model inside the delivered product.
+
+2. Public API and protected boundary
+The exported API is audit_csv(text, schema) -> dict. Protected scaffold owns UTF-8/bounds/schema validation, CSV parsing, header checks, CLI/I/O and final report validation. Muse authors only pure audit_rows(rows, columns) in src/csv_schema_audit/engine.py, plus tests/test_engine.py; rows are already bounded parsed data records and columns are validated schema entries. Engine has no filesystem, process, environment, network, dynamic imports, output side effects or global-state mutation. A separate CSV-specific AST allowlist may admit re and typing only; it must not widen JSONL's allowlist. No reference engine or executable scaffold is supplied by this draft.
+
+API arguments: text must be an exact str encodable as strict UTF-8; otherwise raise ValueError("invalid_input"). Schema must be an exact dict matching section3; otherwise raise ValueError("invalid_schema"). Validate schema first, then text type/encoding. These exception messages are fixed and contain no supplied data. JSONL bytes and behavior are untouched.
+
+3. Exact schema
+Root keys are exactly version and columns. version is exact int1 (not bool). columns is a list of 1..32 exact dicts. Each dict has exactly name,type,required, and optionally enum. name is a unique case-sensitive exact str, 1..64 UTF-8 bytes, with no NUL/CR/LF; other Unicode, comma and quote are allowed. type is exactly string, integer, decimal or boolean. required is exact bool. enum, if present, is a list of 1..32 distinct exact strings, each 1..256 UTF-8 bytes and containing no NUL. All strings must encode as strict UTF-8. No unknown keys, nulls, refs, regexes, defaults or coercion. Schema compact JSON with ensure_ascii=False, separators comma/colon and allow_nan=False is <=16,384 UTF-8 bytes; dictionary key order does not affect validity. CLI additionally bounds the raw schema file to16,384 bytes, rejects duplicate JSON keys at every depth, a UTF-8 BOM and invalid JSON/encoding.
+
+required means a nonempty cell, not an optional column: all declared columns must appear in the header in exact declared order. No stripping, case folding, Unicode normalization or type inference occurs.
+
+4. CSV dialect and bounded structural validation
+Limits are inclusive: input65,536 UTF-8 bytes; data records1,000; fields per record32; each decoded field4,096 UTF-8 bytes; stored errors100. There are no caller-selected limits. Header is not a data record. Input may contain no NUL and may not begin with U+FEFF. UTF-8 BOM is not silently removed.
+
+Parsing behavior is Python's csv.reader over io.StringIO(text,newline=""), with delimiter comma, quotechar double quote, doublequote=True, escapechar=None, skipinitialspace=False and strict=True. This specifies Python CSV semantics, not a claim of full RFC validation. LF/CRLF, quoted commas, doubled quotes and quoted newlines are supported; bare CR has the reader's normal newline semantics. Blank lines produce zero-field records under this parser. Final record terminator does not invent another record. Product code must not change csv.field_size_limit or any process global; the supported host uses the normal stdlib field limit (at least65,536), so the total input cap prevents that global limit from deciding ordinary valid inputs. A caller that externally lowers stdlib globals is outside the supported ABI.
+
+Parse the complete bounded text before business validation; thus malformed later CSV cannot yield a partial success. Structural precedence is:
+(a) input bytes >65,536 -> input_limit;
+(b) forbidden NUL/leading BOM or csv.Error -> invalid_csv;
+(c) zero parsed records -> missing_header;
+(d) data records >1,000 -> row_limit;
+(e) any record has >32 fields -> column_limit;
+(f) any decoded field has >4,096 UTF-8 bytes -> field_limit;
+(g) first parsed record differs from schema names in length/order/exact spelling -> header_mismatch.
+Only the first applicable structural category is reported. Every structural report is {"valid":false,"rows_checked":0,"errors":[{"row":0,"column":0,"code":CODE}],"truncated":false}. Structural diagnostics do not reveal offending values, names, lengths or paths. A blank header therefore produces header_mismatch; an entirely empty file produces missing_header. Duplicate header names cannot satisfy a valid unique schema.
+
+5. Pure engine semantics
+For each data record in order, a width unequal to the schema produces exactly one row_width error at column0 and skips every cell of that record. Otherwise visit cells left to right. Empty means exactly the zero-length string. If empty and required, emit required; if empty and not required, accept and skip type/enum. Whitespace is ordinary data and is never empty.
+Nonempty cell types, matched over the entire string using ASCII tokens:
+- string: any cell accepted by structural parsing/bounds;
+- integer: optional single ASCII + or -, then one or more ASCII digits; leading zeros accepted;
+- decimal: optional single ASCII + or -, one or more ASCII digits, optionally dot followed by one or more ASCII digits; leading zeros accepted;
+- boolean: exactly true or false, lower case.
+There is no numeric conversion or magnitude bound beyond the field cap. Integer/decimal reject whitespace, Unicode digits, exponents, NaN/Infinity, a lone sign, missing leading/trailing digits and extra punctuation. Decimal also accepts an integer-shaped token. On a type failure emit type_mismatch and skip enum. Otherwise, if enum exists, exact raw-string membership is required or emit enum_mismatch. There is at most one error per cell. Values beginning with =,+,-,@ remain inert text; they are never evaluated, executed, repaired or escaped for spreadsheet export. Numeric grammar may legitimately accept signed numeric values.
+
+Every data record is visited even when storage reaches100 errors. rows_checked is the total data-record count, including width-invalid records. Keep the first100 errors in row/column order, set truncated true iff at least101 errors occurred, and set valid true iff no errors occurred. No formula/header/cell/schema-name/value is ever returned. Error entries have exactly row,column,code: row is1-based logical data-record index (not physical line), column is1-based schema position, except row_width uses0. Business codes are only row_width,required,type_mismatch,enum_mismatch.
+
+6. Report and CLI
+All reports have exactly valid (bool), rows_checked (int), errors (list), truncated (bool), in that CLI serialization order. Error keys serialize row,column,code. Protected scaffold validates final shape, indices, allowed codes, <=100 entries and validity/truncation consistency; no model-authored diagnostic string is accepted. API returns a fresh ordinary dict/list structure each call and neither argument is mutated.
+
+Command: csv-schema-audit --schema SCHEMA [CSV|-]. The --schema pair comes first; one optional input argument follows; absent input or - means stdin. No other options are accepted except standalone --help, which prints exactly "usage: csv-schema-audit --schema SCHEMA [CSV|-]\n" and exits0. A missing schema argument, repeated/unknown option, extra input, or schema path - is usage error. CSV filenames beginning with - are not supported in V1; use a ./ prefix. Fixed CLI syntax is deliberate, not a general argparse promise.
+
+Open path inputs read-only, O_NOFOLLOW for the final component, and require a regular file (no FIFO/device/directory); do not claim parent symlinks are forbidden. Read at most limit+1 bytes, never load unbounded files. Schema is read/decoded/validated before CSV is opened/read. CSV stdin is bounded identically. File open/read failures -> stderr {"error":"io_error"}, exit2. Schema size, encoding/BOM, JSON, duplicate-key or semantic failure -> stderr {"error":"invalid_schema"}, exit2. CSV UTF-8 decode failure -> stderr {"error":"invalid_encoding"}, exit2. Syntax/argument failure -> stderr {"error":"usage"}, exit2. No stdout on these failures; no traceback, path or raw exception. CSV over-limit or validation failures produce the section4/5 report on stdout and exit1; a valid report exits0. On exit0/1 stderr is empty. JSON uses ensure_ascii=True, compact comma/colon separators and one final LF. API invalid_input maps only to the fixed CLI category above; it is not an extra CLI error string. --help touches no input.
+
+7. Product acceptance, not a toy milestone
+Deliver complete package metadata/build, fixed exports/CLI, MIT license, English README plus Portuguese quickstart, ROADMAP.md, two small entirely synthetic valid/invalid CSV+schema examples, protected original public tests and a hosted source+installed-wheel/console check. Installed-wheel tests must run without the source tree on sys.path. README documents limits, token grammar, redaction and exits. ROADMAP may mark V1 complete only after the complete contract passes; extra dialects/types/constraints/repair remain future, unoffered work. No empty scaffolding, stub, renamed existing project, cosmetic-only commit or test-count claim is a successful new-project delivery.
+
+Before Muse authors code, Root must freeze an independent oracle and protected scaffold/static-file hashes against this approved contract. Include every structural/lexical/boundary precedence, privacy, deterministic ordering, 100/101-error edge, CLI path/stdin/exits, examples and wheel behavior; Root chooses the exact oracle structure/count. Baseline stub and meaningful policy mutants must fail for semantic reasons. Original JSONL tests/oracle bytes and guards remain unchanged. No independent oracle/reference, fixture, scaffold or candidate implementation was authored or run in this package. A later contract revision must precede its candidate, not excuse a failing one.
+
+PUBLIC CONTRACT SUPPLEMENT — DRAFT, NOT AN INDEPENDENT ORACLE
+The original two document members and FROZEN-DRAFT.json remain byte-exact. These entirely synthetic public examples and one parsing-order clarification complete the handoff before Root authors an independent oracle. No implementation/test/reference was authored or executed.
+
+Shared schema:
+{"version":1,"columns":[{"name":"sku","type":"string","required":true},{"name":"qty","type":"integer","required":true},{"name":"active","type":"boolean","required":false}]}
+
+Valid CSV text (LF after each displayed line):
+sku,qty,active
+A-1,+02,true
+B-2,-3,
+Expected public report:
+{"valid":true,"rows_checked":2,"errors":[],"truncated":false}
+CLI: stdout is that exact compact JSON plus LF, stderr empty, exit0.
+
+Invalid CSV text (LF after each displayed line):
+sku,qty,active
+,2.0,TRUE
+Expected public report:
+{"valid":false,"rows_checked":1,"errors":[{"row":1,"column":1,"code":"required"},{"row":1,"column":2,"code":"type_mismatch"},{"row":1,"column":3,"code":"type_mismatch"}],"truncated":false}
+CLI: stdout is that exact compact JSON plus LF, stderr empty, exit1.
+
+Raw-byte cap precedence for CLI CSV: after the schema succeeds, read at most65,537 bytes. If that read establishes more than65,536 bytes, return the input_limit report/exit1 before UTF-8 decoding. This prevents a multibyte code point cut by the bounded read from becoming a spurious invalid_encoding error. A read failure is io_error/exit2; at or below the cap, a strict UTF-8 decoding failure is invalid_encoding/exit2. This also gives input_limit precedence over a later NUL/BOM/syntax issue, matching section4(a). CLI schema input over16,384 bytes is invalid_schema/exit2 before decode/JSON parse. No partial stdout is emitted on exit2.
+
+PUBLIC DEFENSIVE ERROR ADDENDUM — ROOT ACCEPTED BEFORE CANDIDATE
+
+The three accepted contract documents at csv-schema-audit-contract-draft-v1-20261028 remain unchanged (complete freeze SHA f1b1224306962bc1c055662846ea10f3b67f2c20f4d9ad8dd113c5badc6cff7d).
+
+Root explicitly accepted this narrow defensive extension during scaffold authorship: an engine exception or unsafe/invalid returned report raises API RuntimeError("engine_error") with suppressed candidate exception context. CLI produces exactly {"error":"engine_error"} plus LF on stderr, stdout empty, exit2. No input/model message/traceback is emitted. This is an internal failure, never an accepted semantic result. A correctly implemented engine satisfying the contract does not require this outcome for ordinary valid inputs. No independent oracle/reference or implementation is supplied here; Root separately owns oracle/gap/mutant qualification. This extension does not permit any model/provider/runtime activation.

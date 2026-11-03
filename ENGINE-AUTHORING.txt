@@ -1,0 +1,63 @@
+CSV ENGINE AUTHORING RESTRICTION v2 — NOT A BUSINESS REFERENCE
+
+The accepted CSV feature contract and public API/CLI/docs remain byte-exact.
+Only engine.py and tests/test_engine.py are editable. The engine is pure, receives
+already parsed strings/validated column dictionaries and needs no I/O, processes,
+network, environment, dynamic import, introspection or global state. The source
+guard runs before candidate import, tests, build or wheel installation.
+
+Write one top-level audit_rows(rows, columns) with exactly these two positional
+arguments, no defaults/varargs/keyword-only arguments. Ordinary top-level helper
+functions, loops, comprehensions, conditionals, local containers, indexing,
+comparisons and arithmetic are permitted. Helpers cannot be nested/decorated.
+No classes, async, context managers, global/nonlocal, yield, deletion, starred
+arguments or dunder identifiers/attributes. No mutable module constants/defaults.
+Module scope accepts docstrings, closed imports, function definitions and immutable
+literal/tuple/regex constants only. Regex constants must compile a literal string
+with optional immutable flag expression. Top-level executable calls are forbidden.
+
+Closed imports, with optional unique safe aliases:
+  import re; import typing
+  from re import compile, fullmatch, match, search, escape, findall, finditer
+  from re import A, ASCII, I, IGNORECASE, M, MULTILINE, S, DOTALL, X, VERBOSE,
+                 U, UNICODE, NOFLAG
+  from typing import Any, Dict, List, Tuple, Set, FrozenSet, Sequence, Mapping,
+                     Optional, Union, Iterable, Iterator, Literal
+Relative/star/other imported names are forbidden. Typing imports/module members
+may be used only in annotations, which contain only type expressions, not calls.
+Module names may appear only as the direct value of an allowed module attribute;
+they cannot be aliased, returned, stored or passed. Regex callable imports/module
+members must be called directly; no saved callable aliases or public module graph.
+Import names, builtins, helper names and module constants cannot be rebound by
+function parameters, assignments/comprehensions/loop/exception targets. Aliases
+cannot mask builtins; the sole exception is the explicit re.compile import.
+
+Calls are closed to top-level helpers, approved direct regex functions/methods,
+and these pure builtins:
+  abs all any ascii bool chr dict enumerate float frozenset int isinstance
+  issubclass len list max min ord range repr reversed round set sorted str sum
+  tuple type zip ValueError TypeError RuntimeError NotImplementedError Exception
+  BaseException
+type accepts exactly one positional argument; class factories are not admitted.
+Other builtins cannot even be passed as callbacks. Calls through subscripts,
+returned callables, lambdas or arbitrary local aliases are forbidden.
+
+Allowed direct method calls on pure values:
+  append extend insert pop remove clear copy count index reverse sort get items
+  keys values setdefault update add discard union intersection difference
+  issubset issuperset startswith endswith strip lstrip rstrip split rsplit
+  splitlines join replace lower upper casefold isascii isdigit isdecimal isalpha
+  isalnum isspace encode fullmatch match search findall finditer group groups
+  groupdict start end span
+No method may be saved as a value. Other properties/attributes, including public
+module graph traversal, register/system/read/format and all private attributes,
+are rejected. There is no candidate escape execution in the guard regressions;
+all samples are AST data. Permitted samples demonstrate authoring syntax only,
+not a correct CSV engine/report or independent feature oracle.
+
+This restriction is not a general Python security theorem or a replacement for
+the read-only/offline/empty-home namespaces, resource caps, source pins, full
+public source+wheel tests and Root's independent semantic oracle/gap/mutants.
+Exactly the original27 protected public methods remain unchanged; new guard
+methods are additional. Scaffold-only mode still excludes semantic examples and
+the deliberately failing editable test and never accepts a candidate.

@@ -1,0 +1,19 @@
+name: CSV source and installed-wheel checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare disposable runner tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bubblewrap python3-pip
+          sudo /usr/bin/python3 -m pip install --break-system-packages setuptools==78.1.1 wheel==0.46.3 pip==25.1.1 packaging==26.0
+      - name: Offline source, wheel and console checks
+        run: sudo -n -- /usr/bin/python3 -B scripts/checks-offline.py

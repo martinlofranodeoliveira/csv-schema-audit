@@ -1,0 +1,1 @@
+{"version":1,"columns":[{"name":"sku","type":"string","required":true},{"name":"qty","type":"integer","required":true},{"name":"active","type":"boolean","required":false}]}
