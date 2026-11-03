@@ -1,5 +1,8 @@
 {
-  "schemaVersion": 1,
+  "editable_paths": [
+    "src/csv_schema_audit/engine.py",
+    "tests/test_engine.py"
+  ],
   "expected_paths": [
     ".github/workflows/tests.yml",
     ".gitignore",
@@ -27,12 +30,9 @@
     "tests/test_examples.py",
     "tests/test_scaffold.py"
   ],
-  "editable_paths": [
-    "src/csv_schema_audit/engine.py",
-    "tests/test_engine.py"
-  ],
+  "note": "This file is protected by the outer template spec; self-hashing is deliberately omitted.",
   "protected_sha256": {
-    ".github/workflows/tests.yml": "7376010f7f4d6691aa3c27c9b6dacc3c2ee53595247eadb4ddd56757c55e68d3",
+    ".github/workflows/tests.yml": "cb6f44a2166a1c7e82f9bc4831d2b95329b43bc87b4e8fd17b3a5ea2369db596",
     ".gitignore": "d28269f01250e172ad0781c3a18880a66cd479561a60eaac384e0c92cd442948",
     "CONTRACT.txt": "b9acadd347860429662005856db20611651f72f50c9a2ffdad18612f45d1bb6e",
     "ENGINE-AUTHORING.txt": "4b4475cac870e2803857013cdf490edaae9b95aa341b61a3793d525df715ee06",
@@ -55,5 +55,5 @@
     "tests/test_examples.py": "921fc295c1fad3ba2faeb5db21e857716b90470326b752c34edcb906a690ddda",
     "tests/test_scaffold.py": "231884327f8c67beffbf33d86f79f1ccdc7ec5f9f3ec0e14c4cc63081c430696"
   },
-  "note": "This file is protected by the outer template spec; self-hashing is deliberately omitted."
+  "schemaVersion": 1
 }
