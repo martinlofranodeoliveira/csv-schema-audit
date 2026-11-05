@@ -1,3 +1,57 @@
+<!-- public-docs-pt:v1 -->
+# Auditoria de CSV com esquema explícito
+
+Audita CSV local com limites de recursos e diagnósticos sem ecoar valores. Mantém contrato público, testes protegidos e checagem da distribuição instalada.
+
+**Estado:** edição pública de desenvolvimento. Recursos e limites detalhados estão na referência técnica preservada abaixo.
+
+## Começar em português
+
+**Requisitos:** Python 3.10+; CLI de arquivo requer POSIX O_NOFOLLOW.
+
+```sh
+git clone https://github.com/martinlofranodeoliveira/csv-schema-audit.git
+cd csv-schema-audit
+python3 -m venv .venv
+.venv/bin/python -m pip install .
+.venv/bin/csv-schema-audit --help
+```
+
+Use um ambiente de desenvolvimento separado. Não envie `.env`, chaves, bancos,
+uploads ou dados pessoais ao Git. Nas demonstrações, use somente dados fictícios.
+
+## Documentação e validação
+
+[Guia adicional em português](README.pt-BR.md) · [Planejamento](ROADMAP.md) · [Licença](LICENSE) · [Catálogo do laboratório](https://github.com/martinlofranodeoliveira#projetos-abertos)
+
+Os comandos acima foram conferidos nos manifests/guia público; não significam que todas as integrações, plataformas ou serviços reais foram exercitados nesta revisão documental.
+
+A referência técnica original abaixo preserva APIs, exemplos, limites e histórico
+de funcionalidades. Auxiliares em `community/` são módulos independentes: sua
+existência não comprova integração na interface ou no fluxo principal. Ao avaliar
+uma funcionalidade, consulte também o teste e o código do módulo correspondente.
+
+## Contribuir
+
+Abra uma issue com objetivo, comportamento observado, versão e um exemplo mínimo
+sintético. Para código, inclua testes relevantes, instruções de reprodução e
+atualização da documentação. Não envie segredos ou informações de terceiros em
+issues, exemplos, capturas ou pull requests. Mudanças úteis e completas têm
+preferência sobre alterações feitas apenas para aumentar atividade.
+
+## Licença e autoria
+
+Licença declarada no repositório: **MIT**. Consulte o arquivo de licença e mantenha as atribuições de terceiros.
+
+Nome técnico e URL preservados para manter imports, links e automações existentes.
+Título, descrição e tópicos em português facilitam localizar a finalidade do projeto.
+
+<!-- public-docs-pt:end -->
+
+---
+
+## Referência técnica e documentação original
+
 # csv-schema-audit
 
 A small offline Python library and CLI for checking CSV against an explicit schema. Runtime dependencies: none. Python3.10+; the path-reading CLI requires POSIX `O_NOFOLLOW`. No network, schema inference, repair or spreadsheet evaluation.
